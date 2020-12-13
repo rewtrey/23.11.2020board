@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Board;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class CreateBoardRequest extends FormRequest
 {
@@ -11,9 +12,9 @@ class CreateBoardRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
-        return true;
+        return (bool) Auth::user();
     }
 
     /**
@@ -24,10 +25,14 @@ class CreateBoardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['string', 'min:1', 'max:32', 'required'],
-            'description' => ['string', 'min:1', 'max:255', 'required'],
-            'price' => ['integer', 'min:1', 'max:9999'],
-            'created_at' => ['integer', 'min:1', 'max:9999'],
+            'title' => ['string', 'min:5', 'max:128', 'required'],
+            'description' => ['string', 'min:1', 'max:1024', 'required'],
+            'price' => ['integer', 'min:1', 'max:50000'],
+            'image' => ['image', 'mimes:jpeg,png,jpg,gif,svg']
+
+
+
+
 
         ];
     }

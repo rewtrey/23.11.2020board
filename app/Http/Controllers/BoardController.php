@@ -8,11 +8,12 @@ use App\Http\Requests\Board\UpdateBoardRequest;
 use App\Models\Board;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Routing\Redirector;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+
 
 class BoardController extends Controller
 {
@@ -20,23 +21,18 @@ class BoardController extends Controller
     {
         $user = $request->user();
 
-        $boards = Board::query()
-            ->orderBy('updated_at', 'DESC')
-            ->get()
-            ->toArray();
+        $boards = Board::with('user')
+            ->orderBy ('updated_at', 'DESC')
+           ->paginate(5);
 
         return view('boards.index', [
             'boards' => $boards,
-            'userEmail' => $user->email ?? null
-        ])->with('i',(request()->input('page',1)-1)*5);
-
-
+            'userEmail' => $user->email ?? null]);
     }
-
 
     public function create()
     {
-        return view('boards.create');
+        return view('boards/create');
     }
 
     public function show($boardId)
@@ -47,41 +43,53 @@ class BoardController extends Controller
 
         return view('boards.show',compact('board'));
     }
+
     public function edit(Board $board)
     {
         return view('boards.edit',compact('board'));
     }
 
-    public function store(CreateBoardRequest $request)
-    {
-        /** @var User|null $user */
-        $user = $request->user();
 
-        if (!$user) {
-            return response()->json(['error' => 'You should be authorized to create board!'], Response::HTTP_UNAUTHORIZED);
+    public function store(CreateBoardRequest $request): RedirectResponse
+    {
+        /** @var UploadedFile $file */
+        /** @var User|null $user */
+
+
+            $file = $request->file('file');
+            $validated = $request->validated();
+
+            $board = new Board();
+            $board->user_id = $request->user()->id;
+            $board->title = $validated['title'];
+            $board->description = $validated['description'];
+            $board->price = $validated['price'];
+            $board->image = '';
+            $board->save();
+            $ext = last(explode('.', $file->getClientOriginalName()));
+
+            $fileName = md5(time()) . '.' . $ext;
+            $file->storeAs('', $fileName, 'public');
+
+            $board->image = $fileName;
+
+            $board->save();
+            $board->load('user');
+            return redirect('/boards');
         }
 
-        $validated = $request->validated();
 
-        $board = new Board();
-        $board->user_id = $user->id;
-        $board->title = $validated['title'];
-        $board->description = $validated['description'];
-        $board->price = $validated['price'];
-        $board->created_at = $validated['created_at'];
-        $board->save();
 
-        return redirect('/boards');
-    }
-
-    public function update(UpdateBoardRequest $request, $blogId)
+    public function update(UpdateBoardRequest $request, $boardId)
     {
         $board = Board::query()
-            ->where('id', '=', $blogId)
+            ->where('id', '=', $boardId)
             ->first();
 
+        if ($board->user_id == Auth::user()->id)
+
         if (!$board) {
-            return response()->json(['error' => 'Blog not found with ID: ' . $blogId], Response::HTTP_NOT_FOUND);
+            return response()->json(['error' => 'Оголошення не знайдене з ID: ' . $boardId], Response::HTTP_NOT_FOUND);
         }
 
         $validated = $request->validated();
@@ -93,21 +101,23 @@ class BoardController extends Controller
         $board->save();
 
         return redirect()->route('boards.index')
-            ->with('success', 'Board updated successfully');
+            ->with('success', 'Оголошення оновлено');
     }
 
-    public function destroy($boardId): JsonResponse
+    public function destroy($boardId)
     {
         $board = Board::query()
             ->where('id', '=', $boardId)
             ->first();
 
         if (!$board) {
-            return response()->json(['error' => 'Board not found with ID: ' . $boardId], Response::HTTP_NOT_FOUND);
+            return response()->json(['error' => 'голошення не знайдене з ID: ' . $boardId], Response::HTTP_NOT_FOUND);
         }
 
         $board->delete();
 
-        return response()->json(['message' => 'Board [' . $boardId . '] has been removed!'], Response::HTTP_ACCEPTED);
+        return redirect('/boards')
+            ->with('success', 'Оголошення видалено!');
     }
+
 }

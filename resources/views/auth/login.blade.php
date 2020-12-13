@@ -1,66 +1,75 @@
 @extends('boards.layout')
-
 @section('content')
+<html>
+<head>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+</head>
+<div id="register_form" class="container">
     <div class="container">
         <div class="row">
             <div class="col-md-8 col-md-offset-2">
                 <div class="panel panel-default">
-                    <div class="panel-heading">Login</div>
+                    <div class="panel-heading">Увійти</div>
                     <div class="panel-body">
-                        <form class="form-horizontal" role="form" method="POST" action="{{ url('/login') }}">
-                            {!! csrf_field() !!}
+                            <div id="loader" style="display: none">
+                                Входимо...
+                            </div>
+                        <div id="success" class="alert alert-success" role="alert" style="display:none;">Вхід успішний. Перехід на головну сторінку...</div>
 
-                            <div class="form-group{{ $errors->has('email') ? ' has-error' : '' }}">
-                                <label class="col-md-4 control-label">E-Mail Address</label>
-
-                                <div class="col-md-6">
-                                    <input type="email" class="form-control" name="email" value="{{ old('email') }}">
-
-                                    @if ($errors->has('email'))
-                                        <span class="help-block">
-                                        <strong>{{ $errors->first('email') }}</strong>
-                                    </span>
-                                    @endif
-                                </div>
+                        <div id="main">
+                            <div class="alert alert-danger" role="alert" id="error" style="display: none">ERROR OCCURRED!</div>
+                            <label class="col-md-4 control-label">Email-адрес:</label>
+                            <div class="col-md-6">
+                            <input id='email' type="email" placeholder="Введіть Email-адрес" class="form-group"><br>
                             </div>
 
-                            <div class="form-group{{ $errors->has('password') ? ' has-error' : '' }}">
-                                <label class="col-md-4 control-label">Password</label>
-
-                                <div class="col-md-6">
-                                    <input type="password" class="form-control" name="password">
-
-                                    @if ($errors->has('password'))
-                                        <span class="help-block">
-                                        <strong>{{ $errors->first('password') }}</strong>
-                                    </span>
-                                    @endif
-                                </div>
+                            <label class="col-md-4 control-label">Пароль:</label>
+                            <div class="col-md-6">
+                            <input id='password' type="password" placeholder="Введіть пароль" class="form-group"><br>
                             </div>
 
                             <div class="form-group">
                                 <div class="col-md-6 col-md-offset-4">
-                                    <div class="checkbox">
-                                        <label>
-                                            <input type="checkbox" name="remember"> Remember Me
-                                        </label>
-                                    </div>
+                            <button type="submit" class="btn btn-primary" onclick="login()">Вхід</button>
                                 </div>
-                            </div>
+                        </div>
 
-                            <div class="form-group">
-                                <div class="col-md-6 col-md-offset-4">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fa fa-btn fa-sign-in"></i>Login
-                                    </button>
 
-                                    <a class="btn btn-link" href="{{ url('/password/reset') }}">Forgot Your Password?</a>
-                                </div>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </body>
+                    <script>
+                        function login()
+                        {
+                            window.document.getElementById("error").style.display = 'none';
+                            document.getElementById('loader').style.display = 'block';
+                            document.getElementById('main').style.display = 'none';
+                            let ema = window.document.getElementById('email').value;
+                            let pass = window.document.getElementById('password').value;
+                            let http = new XMLHttpRequest();
+                            let url = '/login';
+                            let params = JSON.stringify({email: ema, password: pass});
+                            http.open('POST', url, true);
+                            http.setRequestHeader('Content-type', 'application/json');
+                            http.setRequestHeader('Accept', 'application/json');
+                            http.onreadystatechange = function() {//Call a function when the state changes.
+                                if(http.readyState === 4 && http.status === 200) {
+                                    document.getElementById('loader').style.display = 'none';
+                                    document.getElementById('success').style.display = 'block';
+                                    window.location.href = '/boards';
+                                } else if (http.readyState === 4 && http.status > 399) {
+                                    let response = JSON.parse(http.responseText);
+                                    let errrorMsg = http.status === 422 ? response.message : response.error;
+                                    window.document.getElementById("error").innerHTML = errrorMsg;
+                                    window.document.getElementById("error").style.display = 'block';
+                                    document.getElementById('loader').style.display = 'none';
+                                    document.getElementById('main').style.display = 'block';
+                                }
+                            };
+                            http.send(params);
+                        }
+                    </script>
+</html>
 @endsection

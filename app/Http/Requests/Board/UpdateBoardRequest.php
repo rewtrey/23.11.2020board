@@ -27,6 +27,7 @@ class UpdateBoardRequest extends FormRequest
             'title' => ['string', 'min:1', 'max:32', 'required', 'sometimes'],
             'description' => ['string', 'min:1', 'max:255', 'required', 'sometimes'],
             'price' => ['integer', 'min:1', 'max:9999', 'sometimes'],
+
         ];
     }
 }
